@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev-api": "nodemon -r dotenv/config api/index.js",
+    "dev-worker": "nodemon -r dotenv/config worker/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "bottleneck": "^2.19.5",
+    "chalk": "^3.0.0",
+    "cors": "^2.8.5",
+    "cron": "^1.8.2",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "puppeteer": "^2.1.1",
+    "puppeteer-extra": "^3.1.9",
+    "puppeteer-extra-plugin-stealth": "^2.4.9",
+    "redis": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
+}
