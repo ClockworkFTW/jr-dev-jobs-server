@@ -10,18 +10,18 @@ const square = require("./square");
 const stripe = require("./stripe");
 const vmware = require("./vmware");
 
-// module.exports = [
-//   dropbox,
-//   ebay,
-//   github,
-//   lyft,
-//   paypal,
-//   pinterest,
-//   robinhood,
-//   square,
-//   stripe,
-//   vmware
-// ];
+module.exports = [
+  dropbox,
+  ebay,
+  github,
+  lyft,
+  paypal,
+  pinterest,
+  robinhood,
+  square,
+  stripe,
+  vmware
+];
 
-// Test individual sites
-module.exports = [dropbox];
+// // Test individual sites
+// module.exports = [dropbox, stripe];

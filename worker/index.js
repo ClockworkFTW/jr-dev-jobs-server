@@ -10,6 +10,7 @@ puppeteer.use(StealthPlugin());
 const redis = require("redis");
 const client = redis.createClient();
 const { promisify } = require("util");
+const getAsync = promisify(client.get).bind(client);
 const setAsync = promisify(client.set).bind(client);
 
 const getCoords = require("./services/google");
@@ -46,10 +47,31 @@ const scrape = async () => {
     }
   });
 
-  // Wait for job promises to resolve, flatten array, add unique id and save to redis
+  // Wait for job promises to resolve
   let jobs = await Promise.all(promises);
+
+  // Flatten jobs array
   jobs = jobs.flat().filter(job => job);
+
+  // Add unique id and timestamp
   jobs = jobs.map(job => ({ ...job, id: hash(job), time: new Date() }));
+
+  // Fetch and parse old jobs from Redis
+  let oldJobs = await getAsync("jobs");
+  oldJobs = JSON.parse(oldJobs);
+
+  // If job already exists keep it otherwise return new job
+  jobs = jobs.map(job => {
+    let existingJob = null;
+    oldJobs.forEach(oldJob => {
+      if (oldJob.id === job.id) {
+        existingJob = oldJob;
+      }
+    });
+    return existingJob ? existingJob : job;
+  });
+
+  // Save updated jobs array to Redis
   await setAsync("jobs", JSON.stringify(jobs));
 
   // Log cron job stop timestamp
