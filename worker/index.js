@@ -1,4 +1,5 @@
 require("events").EventEmitter.defaultMaxListeners = 15;
+var hash = require("object-hash");
 
 // Import puppeteer and set up stealth plugin
 const puppeteer = require("puppeteer-extra");
@@ -45,9 +46,10 @@ const scrape = async () => {
     }
   });
 
-  // Wait for job promises to resolve and save to redis
+  // Wait for job promises to resolve, flatten array, add unique id and save to redis
   let jobs = await Promise.all(promises);
   jobs = jobs.flat().filter(job => job);
+  jobs = jobs.map(job => ({ ...job, id: hash(job), time: new Date() }));
   await setAsync("jobs", JSON.stringify(jobs));
 
   // Log cron job stop timestamp
