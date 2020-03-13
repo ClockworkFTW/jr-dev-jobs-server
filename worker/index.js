@@ -1,4 +1,7 @@
+// Set max listener limit to 15 (default is 10)
 require("events").EventEmitter.defaultMaxListeners = 15;
+
+// Import has for creating unique id's from job objects
 var hash = require("object-hash");
 
 // Import puppeteer and set up stealth plugin
@@ -13,10 +16,16 @@ const { promisify } = require("util");
 const getAsync = promisify(client.get).bind(client);
 const setAsync = promisify(client.set).bind(client);
 
-const getCoords = require("./services/google");
+// Import and declare chalk status's
+const chalk = require("chalk");
+const notification = chalk.bold.blue;
+const success = chalk.green;
+const error = chalk.red;
 
+// Other imports
+const getCoords = require("./services/geocode");
 const sites = require("./sites");
-const { notification, success, error, filterJobs } = require("./util");
+const { filterJobs } = require("./util");
 
 const scrape = async () => {
   // Log cron job start timestamp
@@ -78,7 +87,7 @@ const scrape = async () => {
   console.log(notification(`Page scraping completed: ${new Date()}`));
 };
 
-// Initialize cron job and execute
+// // Initialize and call cron job
 // const CronJob = require("cron").CronJob;
 
 // const job = new CronJob(
@@ -91,4 +100,5 @@ const scrape = async () => {
 
 // job.start();
 
+// Remove in prod
 scrape();

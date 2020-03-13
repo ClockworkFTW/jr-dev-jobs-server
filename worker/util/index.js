@@ -1,9 +1,3 @@
-const chalk = require("chalk");
-
-const notification = chalk.bold.blue;
-const success = chalk.green;
-const error = chalk.red;
-
 const filterJobs = jobs => {
   const keywords = [
     "director",
@@ -30,4 +24,4 @@ const filterJobs = jobs => {
   });
 };
 
-module.exports = { notification, success, error, filterJobs };
+module.exports = { filterJobs };
