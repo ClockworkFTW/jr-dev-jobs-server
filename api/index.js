@@ -10,7 +10,7 @@ const getAsync = promisify(client.get).bind(client);
 const cors = require("cors");
 app.use(cors());
 
-app.get("/jobs", async (req, res) => {
+app.get("/api/jobs", async (req, res) => {
   let jobs = await getAsync("jobs");
   jobs = JSON.parse(jobs);
   res.status(200).json(jobs);
