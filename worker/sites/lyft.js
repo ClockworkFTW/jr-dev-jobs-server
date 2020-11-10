@@ -1,30 +1,35 @@
-const company = "Lyft";
-const logo = "https://cdn.worldvectorlogo.com/logos/lyft-logo.svg";
-const url = "https://www.lyft.com/careers";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Expand engineer job list
-  const button = await page.$x(
-    "/html/body/div[3]/div/article/span/section[5]/div[2]/div/div[2]/div[30]/button"
-  );
-  await button[0].evaluate(button => button.click());
+const { waitTillHTMLRendered } = require("../util");
 
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Expand engineer job list
+    const button = await page.$("div.dmasbq div:nth-child(25) > button");
+    if (button !== null) {
+      await button.click();
+    }
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("a._1HcI2i"));
-      return elements.map(e => {
+      return elements.map((e) => {
         const title = e.querySelector("h3").textContent;
         const location = e.querySelector("p").textContent;
         const link = e.getAttribute("href");
-        return { company, title, location, logo, link };
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    browser.close();
+
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

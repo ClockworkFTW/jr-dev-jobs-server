@@ -1,24 +1,30 @@
-const company = "eBay";
-const logo = "https://cdn.worldvectorlogo.com/logos/ebay.svg";
-const url = "https://jobs.ebayinc.com/search-jobs?ac=38628";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+const { waitTillHTMLRendered } = require("../util");
+
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("a[data-job-id]"));
-      return elements.map(e => {
+
+      return elements.map((e) => {
         const title = e.querySelector("h2").textContent;
+        const link = `https://jobs.ebayinc.com${e.getAttribute("href")}`;
         const location = e.querySelector("span").textContent;
-        const link = e.getAttribute("href");
-        return { company, title, location, logo, link };
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    browser.close();
+
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

@@ -1,24 +1,31 @@
-const company = "Stripe";
-const logo = "https://cdn.worldvectorlogo.com/logos/stripe-4.svg";
-const url = "https://stripe.com/jobs/search?t=engineering&s=fulltime";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+const { waitTillHTMLRendered } = require("../util");
+
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("li.sc-EHOje"));
-      return elements.map(e => {
+
+      return elements.map((e) => {
         const title = e.querySelector("a > div").textContent;
+        const link = `https://stripe.com${e
+          .querySelector("a")
+          .getAttribute("href")}`;
         const location = e.querySelector("div.sc-ifAKCX > span").textContent;
-        const link = e.querySelector("a").getAttribute("href");
-        return { company, title, location, logo, link };
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    return jobs;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

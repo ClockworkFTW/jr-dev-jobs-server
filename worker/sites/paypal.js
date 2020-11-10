@@ -1,25 +1,32 @@
-const company = "PayPal";
-const logo = "https://cdn.worldvectorlogo.com/logos/paypal-icon.svg";
-const url =
-  "https://jobsearch.paypal-corp.com/en-US/search?facetcategory=data%20scientist%7Cdesign%20engineer%7Cglobal%20technical%20support%20engin%7Clocalization%7Crelease%20engineer%7Cresearch%20scientist%7Csoftware%20development%7Cuser%20experience%20researcher&facetcompany=paypal&facetcountry=us";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+const { waitTillHTMLRendered } = require("../util");
+
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("tr.job-result"));
-      return elements.map(e => {
+
+      return elements.map((e) => {
         const title = e.querySelector("a.job-result-title").textContent;
         const location = e.querySelector("div.job-location-line").textContent;
-        const link = e.querySelector("a.job-result-title").getAttribute("href");
-        return { company, title, location, logo, link };
+        const link = `https://jobsearch.paypal-corp.com${e
+          .querySelector("a.job-result-title")
+          .getAttribute("href")}`;
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    browser.close();
+
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

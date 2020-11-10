@@ -1,32 +1,41 @@
-const company = "Airbnb";
-const logo = "https://cdn.worldvectorlogo.com/logos/airbnb-1.svg";
-const url = "https://careers.airbnb.com/positions/";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Select engineer job list
-  const button = await page.$x(
-    "/html/body/div[2]/div/main/div[2]/div/div/div[2]/div[1]/div/ul/li[8]/button"
-  );
-  await button[0].evaluate(button => button.click());
+const { waitTillHTMLRendered } = require("../util");
 
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Filter for engineering jobs
+    const dropdown = await page.$("div.jobs-board__departments__dropdown");
+    if (dropdown !== null) {
+      await dropdown.click();
+      const option = await page.$("div#react-select-3-option-5");
+      if (option !== null) {
+        await option.click();
+      }
+    }
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(
         document.querySelectorAll("li.jobs-board__positions__list__item")
       );
-      return elements.map(e => {
+      return elements.map((e) => {
         const title = e.querySelector("h3").textContent;
         const location = e.querySelector("span").textContent;
         const link = e.querySelector("a").getAttribute("href");
-        return { company, title, location, logo, link };
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    browser.close();
+
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

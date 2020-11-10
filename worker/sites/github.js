@@ -1,32 +1,37 @@
-const company = "GitHub";
-const logo = "https://cdn.worldvectorlogo.com/logos/github-1.svg";
-const url = "https://github.com/about/careers";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Select engineer job list
-  const button = await page.$x(
-    "/html/body/div[4]/main/div[2]/div/div[3]/div[6]/div/button"
-  );
-  await button[0].evaluate(button => button.click());
+const { waitTillHTMLRendered } = require("../util");
 
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Select engineer job list
+    const button = await page.$("div.pb-md-6 div:nth-child(3) > div > button");
+    if (button !== null) {
+      await button.click();
+    }
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(
-        document.querySelector("div.Details--on").querySelectorAll("a")
+        document.querySelectorAll("div.Details--on > ul > a")
       );
-      return elements.map(e => {
+      return elements.map((e) => {
         const title = e.querySelector("span").textContent;
         const location = e.querySelector("span.d-block").textContent;
         const link = e.getAttribute("href");
-        return { company, title, location, logo, link };
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    browser.close();
+
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

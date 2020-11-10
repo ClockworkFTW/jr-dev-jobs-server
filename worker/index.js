@@ -1,8 +1,8 @@
-const puppeteer = require("puppeteer");
-const hash = require("object-hash");
+// Set max listener limit to 100 (default is 10)
+require("events").EventEmitter.defaultMaxListeners = 100;
 
-// Set max listener limit to 15 (default is 10)
-require("events").EventEmitter.defaultMaxListeners = 15;
+// Import npm packages
+const hash = require("object-hash");
 
 // Import and promisify redis
 const redis = require("redis");
@@ -18,65 +18,70 @@ const success = chalk.green;
 const error = chalk.red;
 
 // Other imports
+const companies = require("./config");
+const getSalary = require("./services/salary");
+const getReviews = require("./services/reviews");
 const getCoords = require("./services/geocode");
-const sites = require("./sites");
+const getListing = require("./services/listing");
 const { filterJobs } = require("./util");
 
 const scrape = async () => {
-  // Log cron job start timestamp
-  console.log(notification(`Page scraping initiated: ${new Date()}`));
+  // Log starting timestamp
+  console.log(notification(`Job scraping initiated: ${new Date()}`));
 
-  // Map over each site and fetch data asynchronously
-  const promises = sites.map(async site => {
+  // Map over companies in sequence and fetch data
+  let data = [];
+
+  for (const company of companies) {
     try {
-      const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
-      const page = await browser.newPage();
-      await page.goto(site.url);
+      // Get salary and reviews
+      const salary = await getSalary(company.company);
+      const reviews = await getReviews(company.company);
 
-      let data = await site.getData(page);
-      data = filterJobs(data);
+      // Get jobs
+      let jobs = await company.getJobs(company.link);
+      // Filter out non junior positions
+      jobs = filterJobs(jobs);
+      // Add salary and rest of company object
+      jobs = jobs.map((job) => ({ ...company, ...job, salary, reviews }));
+      // Add coordinates
+      jobs = await Promise.all(jobs.map(async (job) => getCoords(job)));
+      // Add listing
+      jobs = await Promise.all(jobs.map(async (job) => getListing(job)));
 
-      const coordsPromises = data.map(job => getCoords(job));
-      const dataWithCoords = await Promise.all(coordsPromises);
-
-      browser.close();
-
-      console.log(success(`pass: ${site.company}`));
-      return dataWithCoords;
+      console.log(success(`pass: ${company.company} (${jobs.length})`));
+      data.push(jobs);
     } catch (err) {
-      console.log(error(`fail: ${site.company}`));
+      console.log(error(`fail: ${company.company}`));
     }
-  });
+  }
 
-  // Wait for job promises to resolve
-  let jobs = await Promise.all(promises);
-
-  // Flatten jobs array
-  jobs = jobs.flat().filter(job => job);
-
-  // Add unique id and timestamp
-  jobs = jobs.map(job => ({ ...job, id: hash(job), time: new Date() }));
+  // Flatten jobs array and add unique id and timestamp
+  data = data
+    .flat()
+    .filter((job) => job)
+    .map((job) => ({ ...job, id: hash(job), time: new Date() }));
 
   // Fetch and parse old jobs from Redis
-  let oldJobs = await getAsync("jobs");
-  oldJobs = JSON.parse(oldJobs);
+  let oldData = await getAsync("jobs");
+  oldData = JSON.parse(oldData);
 
   // If job already exists keep it otherwise return new job
-  jobs = jobs.map(job => {
+  data = data.map((a) => {
     let existingJob = null;
-    oldJobs.forEach(oldJob => {
-      if (oldJob.id === job.id) {
-        existingJob = oldJob;
+    oldData.forEach((b) => {
+      if (b.id === a.id) {
+        existingJob = b;
       }
     });
-    return existingJob ? existingJob : job;
+    return existingJob ? existingJob : a;
   });
 
   // Save updated jobs array to Redis
-  await setAsync("jobs", JSON.stringify(jobs));
+  await setAsync("jobs", JSON.stringify(data));
 
-  // Log cron job stop timestamp
-  console.log(notification(`Page scraping completed: ${new Date()}`));
+  // Log completed timestamp
+  console.log(notification(`Job scraping completed: ${new Date()}`));
 };
 
 // Initialize and call cron job

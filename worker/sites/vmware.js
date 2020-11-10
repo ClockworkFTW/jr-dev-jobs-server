@@ -1,29 +1,32 @@
-const company = "VMware";
-const logo = "https://cdn.worldvectorlogo.com/logos/vmware-1.svg";
-const url =
-  "https://careers.vmware.com/main/jobs?page=1&limit=100&experienceLevels=Entry%20Level&tags1=Engineering%20and%20Technology&country=USA";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+const { waitTillHTMLRendered } = require("../util");
+
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    // Extract data from job list
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(
         document.querySelectorAll("span.mat-content")
       );
-      return elements.map(e => {
-        const title = e.querySelector("a.job-title-link").textContent;
-        const location = e
-          .querySelector("span.location")
-          .querySelectorAll("span")[1].textContent;
-        const link = e.querySelector("a.job-title-link").getAttribute("href");
-        return { company, title, location, logo, link };
+
+      return elements.map((e) => {
+        const title = e.querySelector("a.job-title-link > span").textContent;
+        const link = `https://careers.vmware.com/${e
+          .querySelector("a.job-title-link")
+          .getAttribute("href")}`;
+        const location = e.querySelector("span.location").textContent;
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };

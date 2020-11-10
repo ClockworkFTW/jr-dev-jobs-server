@@ -1,27 +1,31 @@
-const company = "Robinhood";
-const logo = "https://cdn.worldvectorlogo.com/logos/robinhood-1.svg";
-const url =
-  "https://boards.greenhouse.io/embed/job_board?for=robinhood&b=https%3A%2F%2Fcareers.robinhood.com%2Fopenings";
+const puppeteer = require("puppeteer");
 
-const getData = async page => {
-  // Extract data from job list
-  const jobs = await page.evaluate(
-    (company, logo) => {
+const { waitTillHTMLRendered } = require("../util");
+
+module.exports = async (url) => {
+  try {
+    const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    await page.goto(url, { timeout: 10000, waitUntil: "load" });
+    await waitTillHTMLRendered(page);
+
+    const jobs = await page.evaluate(() => {
       const elements = Array.from(
-        document.querySelectorAll('div[department_id="19564"]')
+        document.querySelectorAll(
+          'div[department_id="69810"], div[department_id="69808"]'
+        )
       );
-      return elements.map(e => {
+
+      return elements.map((e) => {
         const title = e.querySelector("a").textContent;
-        const location = e.querySelector("span").textContent;
         const link = e.querySelector("a").getAttribute("href");
-        return { company, title, location, logo, link };
+        const location = e.querySelector("span").textContent;
+        return { title, link, location };
       });
-    },
-    company,
-    logo
-  );
+    });
 
-  return jobs;
+    return jobs;
+  } catch (error) {
+    throw error;
+  }
 };
-
-module.exports = { company, url, getData };
