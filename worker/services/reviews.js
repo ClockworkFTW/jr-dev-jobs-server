@@ -32,7 +32,6 @@ module.exports = async (company) => {
 
     return reviews;
   } catch (error) {
-    console.log(error);
     throw error;
   }
 };

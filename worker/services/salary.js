@@ -48,7 +48,7 @@ const getSalary = async (company) => {
 
     return data;
   } catch (error) {
-    return null;
+    throw error;
   }
 };
 

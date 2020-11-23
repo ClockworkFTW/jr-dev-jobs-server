@@ -1,33 +1,27 @@
-const filterJobs = (jobs) => {
-  const keywords = [
-    "director",
-    "manager",
-    "senior",
-    "lead",
-    "head",
-    "internship",
-    "intern",
-    "university",
-    "grad",
-    "sr.",
-    "principal",
-    "staff",
-  ];
+const { filters, technologies } = require("../config");
 
-  return jobs.filter((job) => {
+const filterJobs = (jobs) =>
+  jobs.filter((job) => {
     let pass = true;
-    keywords.forEach((keyword) => {
-      if (job.title.toLowerCase().includes(keyword)) {
+    filters.forEach((filter) => {
+      if (job.title.toLowerCase().includes(filter)) {
         pass = false;
       }
     });
     return pass;
   });
-};
+
+const getTech = (description) =>
+  technologies
+    .map((technology) => {
+      const regex = new RegExp(technology, "g");
+      const count = (description.match(regex) || []).length;
+      return [technology, count];
+    })
+    .filter((e) => e[1] !== 0);
 
 // Credit: Anand Mahajan (https://stackoverflow.com/questions/52497252/puppeteer-wait-until-page-is-completely-loaded?rq=1)
-
-const waitTillHTMLRendered = async (page, timeout = 30000) => {
+const waitHTML = async (page, timeout = 30000) => {
   const checkDurationMsecs = 1000;
   const maxChecks = timeout / checkDurationMsecs;
   let lastHTMLSize = 0;
@@ -52,4 +46,4 @@ const waitTillHTMLRendered = async (page, timeout = 30000) => {
   }
 };
 
-module.exports = { filterJobs, waitTillHTMLRendered };
+module.exports = { filterJobs, getTech, waitHTML };
