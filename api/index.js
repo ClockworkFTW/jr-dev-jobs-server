@@ -11,9 +11,13 @@ const cors = require("cors");
 app.use(cors());
 
 app.get("/api/jobs", async (req, res) => {
-  let jobs = await getAsync("jobs");
-  jobs = JSON.parse(jobs);
-  res.status(200).json(jobs);
+  try {
+    let jobs = await getAsync("jobs");
+    jobs = jobs ? JSON.parse(jobs) : [];
+    res.status(200).json(jobs);
+  } catch (error) {
+    res.status(400);
+  }
 });
 
 app.listen(port, () => console.log(`jobs api running on port: ${port}`));

@@ -1,16 +1,36 @@
+const moment = require("moment");
 const { filters, technologies } = require("../config");
 
-const filterJobs = (jobs) =>
-  jobs.filter((job) => {
+// Filter out non junior jobs
+const filterByLevel = (jobs) => {
+  let filteredJobs = [];
+  jobs.forEach((job) => {
     let pass = true;
     filters.forEach((filter) => {
       if (job.title.toLowerCase().includes(filter)) {
         pass = false;
       }
     });
-    return pass;
+    if (pass) filteredJobs.push(job);
   });
+  return filteredJobs;
+};
 
+// Convert time ago string to date and filter out jobs older than 2 weeks
+const filterByTime = (jobs) => {
+  let filteredJobs = [];
+  jobs.forEach((job) => {
+    const num = job.time.split(" ")[0].replace("+", "");
+    const unit = job.time.split(" ")[1];
+    if (num <= 14) {
+      const time = moment().subtract(num, unit).format("YYYY-MM-DD");
+      filteredJobs.push({ ...job, time });
+    }
+  });
+  return filteredJobs;
+};
+
+// Count occurrences of technologies in job description
 const getTech = (description) =>
   technologies
     .map((technology) => {
@@ -46,4 +66,4 @@ const waitHTML = async (page, timeout = 30000) => {
   }
 };
 
-module.exports = { filterJobs, getTech, waitHTML };
+module.exports = { filterByLevel, filterByTime, getTech, waitHTML };

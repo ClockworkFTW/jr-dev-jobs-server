@@ -7,14 +7,12 @@ module.exports = async (job) => {
   try {
     const browser = await puppeteer.launch({ args: browserArgs });
     const page = await browser.newPage();
-    const url = `https://www.indeed.com/cmp/${job.company}/jobs?jk=${job.link}&q=&l=&c=techsoftware&start=0`;
+    const url = `https://www.indeed.com/cmp/${job.company}/jobs?jk=${job.id}`;
     await page.goto(url, { timeout: 10000, waitUntil: "load" });
     await waitHTML(page);
 
-    const { link, description } = await page.evaluate((indeed) => {
-      // Get job link
-      let link = document.querySelector(indeed.link).getAttribute("href");
-      link = `https://indeed.com${link}`;
+    const description = await page.evaluate((indeed) => {
+      const element = document.querySelector(indeed.description);
 
       // Create HTML string of elements descendants
       const getDescription = (element) => {
@@ -37,11 +35,7 @@ module.exports = async (job) => {
         return arr.join("");
       };
 
-      // Get job description
-      let description = document.querySelector(indeed.description);
-      description = getDescription(description);
-
-      return { link, description };
+      return getDescription(element);
     }, indeed);
 
     browser.close();
@@ -50,7 +44,7 @@ module.exports = async (job) => {
 
     const { address, coordinates } = await getCoordinates(job.location);
 
-    return { ...job, link, description, technologies, address, coordinates };
+    return { ...job, description, technologies, address, coordinates };
   } catch (error) {
     return null;
   }
