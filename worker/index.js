@@ -37,7 +37,6 @@ const scrape = async () => {
       console.log(success(`start: ${company}`));
 
       try {
-        if (company === "AMD") throw "test error";
         // Get salary and reviews
         const salary = await getSalary(company);
         console.log(success(`${company} salary fetched`));
@@ -58,19 +57,21 @@ const scrape = async () => {
         });
         console.log(success(`${company} ${jobs.length} jobs filtered`));
 
-        // Create jobs progress bar
-        const bar = new ProgressBar(`${company} [:bar] :etas`, {
-          total: jobs.length,
-          width: 20,
-        });
+        if (jobs.length > 0) {
+          // Create jobs progress bar
+          const bar = new ProgressBar(`${company} [:bar] :etas`, {
+            total: jobs.length,
+            width: 20,
+          });
 
-        // Add details and save to Redis
-        console.log(success(`${company} saving jobs...`));
-        for (let k = 0; k < jobs.length; k++) {
-          let job = jobs[k];
-          job = await getDetails(job);
-          if (job) await saveJob(job);
-          bar.tick();
+          // Add details and save to Redis
+          console.log(success(`${company} saving jobs...`));
+          for (let k = 0; k < jobs.length; k++) {
+            let job = jobs[k];
+            job = await getDetails(job);
+            if (job) await saveJob(job);
+            bar.tick();
+          }
         }
 
         // Set pass filter to true
@@ -95,17 +96,15 @@ const scrape = async () => {
   console.log(notification(`Job scraping completed: ${new Date()}`));
 };
 
-// // Initialize and call cron job
-// const CronJob = require("cron").CronJob;
+// Initialize and call cron job
+const CronJob = require("cron").CronJob;
 
-// const job = new CronJob(
-//   "0 */12 * * *",
-//   scrape,
-//   null,
-//   true,
-//   "America/Los_Angeles"
-// );
+const job = new CronJob(
+  "0 */12 * * *",
+  scrape,
+  null,
+  true,
+  "America/Los_Angeles"
+);
 
-// job.start();
-
-scrape();
+job.start();
